@@ -165,7 +165,37 @@ reward = -\left[(x_{agent} - x_{landmark})^2 + (y_{agent} - y_{landmark})^2\righ
 $$
 其中x、y分别代表agent和landmark在二维平面内某一固定直角坐标系的横、纵坐标，即agent获得的回报值定义为当前状态下agent与landmark之间欧式距离平方的负值。当回报值为0时，agent成功到达landmark所在位置。
 
+### 2.3 观察信息
 
+在任一时刻，agent可以从环境中获得的信息有agent自身的速度信息，即agent正在以多大的速度向哪一方向前进；agent与landmark之间的相对位置信息，即landmark处于agent的哪一方位，距离有多远；以及agent当前所能获得的回报值。
+
+值得一提的是，尽管agent可以在每一时刻从环境中获得回报值，但agent并不了解回报值的具体定义形式，也不知道越靠近landmark回报值越高这一预先设定的规则。深度强化学习的目标就是让agent通过不断的尝试，观察回报值的变化规律，最终根据自身的观察信息作出正确的行为决策，学习到越靠近landmark回报值越高这一规律，从而通过最大化回报值来完成移动到达landmark位置的任务目标。
+
+### 2.4 算法实现
+
+#### 2.4.1 随机策略
+
+首先从最简单的策略入手，即随机策略。agent完全忽略从环境中获得的一切观察信息，包括自身速度、landmark相对位置以及回报值，在每一次作出决策的时刻等概率地从向上移动、向下移动、向左移动、向右移动以及不采取行动中等概率的选择一种行为，用来指导agent的后续行动。
+
+![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/290230FF-2AAF-4529-AA2B-5199F9D424CD/Attachment.png)
+
+很显然，随机策略并不能完成既定的任务目标。agent只是随机地在二维空间中进行游走，而并没有任何主动去靠近landmark的行为尝试，也完全忽略最大化回报值这一行为目标。下面的图片展示了agent采取1000次决策行为的过程中agent所获得的回报值变化情况：
+
+![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/1E617266-562A-4579-99DB-CF353473DB44/Attachment.png)
+
+从图中可以看到，随机算法得到的实验结果是不收敛的。agent所获得的回报值越来越低，说明agent做无意义的随机游走，并最终趋向于远离landmark。随机策略完全不能完成该环境所定义的任务。
+
+#### 2.4.2 完全信息策略
+
+在2.4.1中考虑了一种极端情况，即agent完全忽略环境中的一切信息，随机的采取行动。下面考虑另一种极端情况，即假设agent已经完全获得了环境中的一切信息，包括回报值的定义方式以及任务的最终目标。换句话说，用我们的人类知识去指导agent的行为，完成任务。对这一简单任务，一种简单直观的人类策略方式首先是观察landmark相对于agent的位置，由于任务的最终目标是使得agent运动到landmark所在的位置，那么agent在每一步的行为应当缩短其与landmark之间的距离，即agent在每一时刻始终向landmark的位置采取行动，并且在水平和垂直两个方向上优先选择相对距离较大的方向采取行动。如下图所示：
+
+![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/C68D30D4-99D4-4E84-A341-D2A231194DA3/Attachment.png)
+
+在当前状态下，agent选择向上移动，因为landmark此时位于agent的右上方，并且landmark在垂直方向上距离agent的相对距离要大于水平方向上的相对距离。agent优先在相对距离较大的方向上采取行动，因此agent向上移动。对于完全信息策略，同样让agent执行1000次决策行为，观察agent所获得的回报值情况，获得的结果如下：
+
+![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/0468D827-9118-44F9-95DC-F8CA0C22860C/Attachment.png)
+
+可以看到，不同于随机策略，完全信息策略在很短时间内即可得到收敛结果。agent所获得的回报值在短短几个time_step内便趋近于0，即agent很快到达了landmark所在位置，并在landmark所在位置附近震荡。完全信息策略很好的完成了任务目标，当然这也是理所当然的。但完全信息策略的意义在于它微后续的深度强化学习算法制定了标准，如果后续的深度强化学习算法可以接近甚至超过完全信息策略的表现，那么深度强化学习算法就是有效的。
 
 
 
