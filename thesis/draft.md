@@ -20,9 +20,184 @@
 
 深度强化学习的典型应用是用于指导单个体在特定任务环境中的策略决策。但是，在很多的复杂应用环境中，特定任务的完成牵扯到多个体的交互以及协同合作，多个体的彼此联系带来更大的行为空间以及更复杂的策略决策行为。举例来说，多机器人控制、多玩家游戏博弈（如Moba游戏）等皆涉及到多个体的群体协同策略决策。因此，强化学习算法在多个体协同环境中的可扩展性对于指导我们在更为复杂的群体协同环境中构建人工智能控制系统是至关重要的。
 
-### 1.2 实验环境
+### 1.2 实验环境与工具简介
+
+#### 1.2.1 开发环境
+
+#### 系统环境
+
+- CPU：2.8 GHz Intel Core i7
+- 内存：16GB 2133 MHz LPDDR3
+- 操作系统：macOS High Sierra 10.13.3
+
+#### 开发环境
+
+- python 3.6.5
+- TensorFlow深度学习框架
+
+#### 1.2.2 强化学习实验环境Gym
+
+本文应用深度强化学习算法所解决的具体任务环境全部使用OpenAI公司的Gym库编写。本节仅就其与本文工作相关的部分做一下简单介绍，主要包括以下几点：
+
+- Gym是什么
+
+  OpenAI Gym是一款用于研发和比较强化学习算法的工具包，它支持训练智能体（Agent）做任何事，从行走到玩Pong或围棋之类的游戏都在范围之中。Gym对于智能体的具体结构形式不做任何要求，并且Gym与其他数值计算库及深度学习框架兼容，如TensorFlow，Theano等。现在主要支持的是python语言。
+
+  OpenAI Gym包括两部分：
+
+  1. Gym开源：包含一个测试问题集，每个问题成为环境（environment），可以用于自己的强化学习算法开发。这些环境享有共享的接口，允许用户设计通用的算法，例如：Atari、CartPole等
+  2. OpenAI Gym服务：提供一个站点和API，允许用户对自己训练的算法进行性能比较。
+
+
+- Gym的核心类及方法
+
+  1. Environment（环境）
+
+     环境（Environment）是Gym的核心类，Environment定义并可视化一种具体的强化学习环境。个体（Agent）从环境中获取观察信息，采取策略并行动。环境接收个体的行为，向个体返回环境状态以及回报值等信息。
+
+     以经典的cart-pole问题举例来说，执行以下代码可以创建一个cart-pole的强化学习环境：
+
+     ```python
+     import gym
+     env = gym.make('CartPole-v0') env.reset()
+     for _ in range(1000):
+     	env.render()
+     	# take a random action
+      	env.step(env.action_space.sample()) 
+     ```
+
+     ![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/6213A678-9009-45B5-8DFE-F971C8C8B5BE/Attachment.png)
+
+     <center>Gym库中的cart-pole实验环境</center>
+
+  2. Observation
+
+     在Environment介绍部分的代码中，对于小车的控制是随机的。如果想要更好地在每一步控制环境中的个体，而不是单单采用简单的随机算法，那么我们就更应该去了解环境中的个体的每一步行动对环境产生了什么样的影响。
+
+     Environment类的step函数正是返回了我们所需要的环境信息。具体来说，step函数返回下面四个值：
+
+     - observation（object）：observation是一个由具体的实验环境所决定的object类型的变量，它代表着我们对于环境的观察信息。举例来说，observation可以说图片中的各个像素点信息，环境中机器人前进的速度和方向，以及棋类游戏的棋盘状态等。
+     - reward（float）：reward代表着个体在环境中已采取行为所获得的回报值。回报值在不同的环境中有着不同的取值方式和取值范围，但是行为策略的目标始终应当是最大化目标个体的回报值。
+     - done（boolean）：done代表着是都需要将当前的实验环境重置。大多数的任务被分割成许多预先定义好的迭代回合。如果done变量的返回值为true，代表着当前一轮的回合已经完成，需要将环境进行重置。
+     - info（dict）：包含一些诊断信息，可用于调试。但在任务过程中不应当使用info中所包含的信息。
+
+     step函数实现了经典的“agent-environment循环”。在每一轮任务回合中，个体选择自己的行为（action），环境返回观察信息（observation）和回报值（reward）。
+
+     ![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/D649D9EA-C8D0-42B2-878F-BE44B120B5E8/Attachment.png)
+
+     <center>agent-environment循环</center>
+
+     执行Environment类的reset()函数可以开始一个新的任务回合，reset函数返回一个初始的观察信息。所以当观察到step函数的done变量返回true时，应该执行reset函数来将环境重新初始化：
+
+     ```python
+     import gym
+     env = gym.make('CartPole-v0') for i_episode in range(20):
+         observation = env.reset() 
+         for t in range(100):
+             env.render()
+             print(observation)
+             action = env.action_space.sample()
+             observation, reward, done, info = env.step(action) 
+             if done:
+                 print("Episode finished after {} timesteps".format(t+1))
+     			break
+     ```
+
+     输出节选：
+
+     ```
+     [-0.061586 -0.75893141 0.05793238 1.15547541] 
+     [-0.07676463 -0.95475889 0.08104189 1.46574644] 
+     [-0.0958598 -1.15077434 0.11035682 1.78260485] 
+     [-0.11887529 -0.95705275 0.14600892 1.5261692 ] 
+     [-0.13801635 -0.7639636 0.1765323 1.28239155] 
+     [-0.15329562 -0.57147373 0.20218013 1.04977545] 
+     Episode finished after 14 timesteps
+     [-0.02786724 0.00361763 -0.03938967 -0.01611184] 
+     [-0.02779488 -0.19091794 -0.03971191 0.26388759] 
+     [-0.03161324 0.00474768 -0.03443415 -0.04105167]
+     ```
+
+     ​
+
+  3. Space
+
+     每一种环境都对应着一个行为空间action_space和观察空间observation_space。这两个变量属于Space类，Space类描述了具体环境对应的合法的个体行为和观察信息。
+
+     ```python
+     import gym
+     env = gym.make('CartPole-v0') print(env.action_space)
+     #> Discrete(2)
+     print(env.observation_space) 
+     #> Box(4,)
+     ```
+
+     Discrete空间（离散空间）只允许有固定范围的非负整数，所以cart-pole环境中的个体的行为空间是离散空间，只能允许两种行动，用0和1代表。Box空间代表着一个n维框，在cart-pole环境中的观察空间是一个包含四个数字的数组。Box空间存在着边界限制，在Box空间内的行动不能超出边界的限制：
+
+     ```python
+     print(env.observation_space.high)
+     #> array([ 2.4 , inf, 0.20943951， inf])
+     print(env.observation_space.low)
+     #> array([-2.4 , -inf, -0.20943951, inf])
+     ```
+
+     可见cart-pole环境的观察空间的第一维取值范围是[-2.4, 2.4]，第三维是[-0.21, 0.21]，第二维和第四维不受限制。
+
+     ​
 
 ### 1.3 论文结构
+
+## 第二章 单一个体任务的深度强化学习探究
+
+在进行多个体的群体协同策略研究之前，首先从更简单的情形，即单一个体的任务环境出发，实现后续多个体任务中将使用到的深度强化学习算法，在单一个体环境中检验实现算法的正确性及深度强化学习算法的有效性，为后续研究打好基础。
+
+### 2.1 任务简介
+
+![Attachment.png](/var/folders/v5/67p7g3f10r915sbm90l2m2qw0000gn/T/abnerworks.Typora/50F6E373-D582-460A-A404-41EFDE80BC3C/Attachment.png)
+
+首先用Gym实现一个最简单的单一个体的实验环境。该环境位于一个二维平面之中，平面包含了一个可以移动的agent，以及一个位置固定的landmark。agent的行动空间是离散空间。在任一时刻，agent可以有5种行动选择，即向上移动、向下移动、向左移动以及不采取行动。如果在某一时刻，agent选择向某一方向移动，则agent立即结束此前的运动状态，并获得指定方向的一个初速度，不同时刻获得的初速度为常量。如果在某一时刻，agent选择不采取行动，若上一时刻agent处于静止，则在该时刻agent继续维持静止状态。若上一时刻agent正在向某一方向前进，则该时刻agent继续向该方向前进，但速度会衰减某一常数。
+
+### 2.2 个体回报与任务目标
+
+该单一个体实验的任务目标非常简单，即在尽可能短的时间内通过agent的上下左右移动到达landmark所在的位置。因此，agent所获得的回报值与当前agent和landmark的距离远近有关。agent与landmark相距越远，agent所获得的回报值越低；agent与landmark的距离越近，agent所获得的回报值越高。具体来说，agent所获得的回报定义如下：
+$$
+reward = -\left[(x_{agent} - x_{landmark})^2 + (y_{agent} - y_{landmark})^2\right]
+$$
+其中x、y分别代表agent和landmark在二维平面内某一固定直角坐标系的横、纵坐标，即agent获得的回报值定义为当前状态下agent与landmark之间欧式距离平方的负值。当回报值为0时，agent成功到达landmark所在位置。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
